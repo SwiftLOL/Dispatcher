@@ -75,11 +75,11 @@ static void * mutableSetOfNotifierKey = &mutableSetOfNotifierKey;
 
 
 
-@interface ObserverInfor : NSObject
+@interface SubscriberInfor : NSObject
 
 @end
 
-@implementation ObserverInfor
+@implementation SubscriberInfor
 {
     @public
     __weak  id  controller;
@@ -93,7 +93,7 @@ static void * mutableSetOfNotifierKey = &mutableSetOfNotifierKey;
 
 @implementation Dispatcher
 {
-    NSMapTable <id,NSHashTable<ObserverInfor *>*> *_mapTable;
+    NSMapTable <id,NSHashTable<SubscriberInfor *>*> *_mapTable;
     
     
     OSSpinLock _lock;
@@ -130,7 +130,7 @@ static void * mutableSetOfNotifierKey = &mutableSetOfNotifierKey;
 
 -(void)registerSubscriber:(id)subscriber notifier:(id)notifier usingBlock:(void (^)(NSString *, NSDictionary *))block
 {
-    ObserverInfor *infor = [[ObserverInfor alloc] init];
+    SubscriberInfor *infor = [[SubscriberInfor alloc] init];
     infor->block=block;
     infor->controller=subscriber;
     
@@ -154,7 +154,7 @@ static void * mutableSetOfNotifierKey = &mutableSetOfNotifierKey;
 
 -(void)registerSubscriber:(id)subscriber notifier:(id)notifier usingSelector:(SEL)selector
 {
-    ObserverInfor *infor = [[ObserverInfor alloc] init];
+    SubscriberInfor *infor = [[SubscriberInfor alloc] init];
     infor->selector=selector;
     infor->controller=subscriber;
     [[subscriber mutableSetOfNotifier] addObject:infor];
@@ -182,7 +182,7 @@ static void * mutableSetOfNotifierKey = &mutableSetOfNotifierKey;
     
     NSHashTable *hash = [_mapTable objectForKey:notifier];
     
-    for (ObserverInfor *infor in hash.allObjects) {
+    for (SubscriberInfor *infor in hash.allObjects) {
         if(infor->controller==subscriber)
         {
             [hash removeObject:infor];
@@ -208,7 +208,7 @@ static void * mutableSetOfNotifierKey = &mutableSetOfNotifierKey;
     
     for (id object in set.allObjects) {
         NSHashTable *hash = [_mapTable objectForKey:object];
-        for (ObserverInfor *infor in hash.allObjects) {
+        for (SubscriberInfor *infor in hash.allObjects) {
             if(infor->controller==subscriber)
             {
                 [hash removeObject:infor];
@@ -234,7 +234,7 @@ static void * mutableSetOfNotifierKey = &mutableSetOfNotifierKey;
     NSHashTable *hashTable = [_mapTable objectForKey:notifier];
     if(hashTable)
     {
-        for (ObserverInfor *infor in hashTable)
+        for (SubscriberInfor *infor in hashTable)
         {
             
             if(infor->selector)
