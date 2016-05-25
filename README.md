@@ -21,11 +21,11 @@
  
  
  
-      [self.B registerSubscriberToNotifier:self.A usingBlock:^(NSString *messageName,           NSDictionary *message) {
+      [BObject registerSubscriberToNotifier:AObject usingBlock:^(NSString *messageName,NSDictionary *message) {
                 NSLog(@"using block %@  %@",messageName,message);
     }];
 
-     [self registerSubscriberToNotifier:self.A usingSelector:@selector(recieveMessageName:message:)];
+     [CObject registerSubscriberToNotifier:AObject usingSelector:@selector(recieveMessageName:message:)];
 
 
 
@@ -33,16 +33,16 @@
 
 
 
-    [self.A dispatchMessage:@{@"A":@"isDispatching message"} messageName:@"test"];
+    [AObject dispatchMessage:@{@"A":@"isDispatching message"} messageName:@"test"];
 
 
 3.移除通知者
 
-    [self unRegisterSubscriberToNotifier:self.A];
+    [BObject unRegisterSubscriberToNotifier:AObject];
        
 4.移除所有的通知者
 
-    [self unRegisterSubscriberToAllNotifier];
+    [CObject unRegisterSubscriberToAllNotifier];
 
     
     
