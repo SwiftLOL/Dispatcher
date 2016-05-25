@@ -12,26 +12,61 @@
 
 
 
-static void * mutableSetOfObserverKey = &mutableSetOfObserverKey;
+static void * mutableSetOfNotifierKey = &mutableSetOfNotifierKey;
 
 @implementation NSObject (Dispatcher)
 
--(NSMutableSet *)mutableSetOfObserver
+-(NSMutableSet *)mutableSetOfNotifier
 {
-    NSMutableSet *mutableSet = objc_getAssociatedObject(self, mutableSetOfObserverKey);
+    NSMutableSet *mutableSet = objc_getAssociatedObject(self, mutableSetOfNotifierKey);
     if(!mutableSet)
     {
         mutableSet = [NSMutableSet set];
-        [self setMutableSetOfObserver:mutableSet];
+        [self setMutableSetOfNotifier:mutableSet];
     }
     return mutableSet;
 }
 
 
--(void)setMutableSetOfObserver:(NSMutableSet *)mutableSet
+-(void)setMutableSetOfNotifier:(NSMutableSet *)mutableSet
 {
-    objc_setAssociatedObject(self, mutableSetOfObserverKey, mutableSet, OBJC_ASSOCIATION_RETAIN);
+    objc_setAssociatedObject(self, mutableSetOfNotifierKey, mutableSet, OBJC_ASSOCIATION_RETAIN);
 }
+
+
+
+-(void)registerSubscriberToNotifier:(id)notifier   usingBlock:(void (^)(NSString *messageName,NSDictionary *message)) block
+{
+    [[Dispatcher shareInstance] registerSubscriber:self notifier:notifier usingBlock:block];
+}
+
+
+
+-(void)registerSubscriberToNotifier:(id)notifier   usingSelector:(SEL)selector
+{
+    [[Dispatcher shareInstance] registerSubscriber:self notifier:notifier usingSelector:selector];
+}
+
+
+-(void)unRegisterSubscriberToNotifier:(id)notifier
+{
+    [[Dispatcher shareInstance] unRegisterSubscriber:self notifier:notifier];
+}
+
+
+
+-(void)unRegisterSubscriberToAllNotifier
+{
+    [[Dispatcher shareInstance] unRegisterSubscriberToAllNotifier];
+}
+
+
+
+-(void)dispatchMessage:(NSDictionary *)message  messageName:(NSString *)messageName
+{
+    [[Dispatcher shareInstance]  dispatchMessage:message messageName:messageName notifier:self];
+}
+
 
 @end
 
@@ -93,22 +128,22 @@ static void * mutableSetOfObserverKey = &mutableSetOfObserverKey;
 
 
 
--(void)addObserver:(id)observer  messageFromObject:(id)object     usingBlock:(void (^)(NSString *messageName,NSDictionary *message)) block
+-(void)registerSubscriber:(id)subscriber notifier:(id)notifier usingBlock:(void (^)(NSString *, NSDictionary *))block
 {
     ObserverInfor *infor = [[ObserverInfor alloc] init];
     infor->block=block;
-    infor->controller=observer;
+    infor->controller=subscriber;
     
-    [[observer mutableSetOfObserver] addObject:infor];
+    [[subscriber mutableSetOfNotifier] addObject:infor];
     
     
     OSSpinLockLock(&_lock);
     
-    NSHashTable *hashTable = [_mapTable objectForKey:object];
+    NSHashTable *hashTable = [_mapTable objectForKey:notifier];
     if(!hashTable)
     {
         hashTable = [NSHashTable hashTableWithOptions:NSPointerFunctionsWeakMemory|NSPointerFunctionsObjectPointerPersonality];
-        [_mapTable setObject:hashTable forKey:object];
+        [_mapTable setObject:hashTable forKey:notifier];
 
     }
     [hashTable addObject:infor];
@@ -117,21 +152,21 @@ static void * mutableSetOfObserverKey = &mutableSetOfObserverKey;
 }
 
 
--(void)addObserver:(id)observer  messageFromObject:(id)object   usingSelector:(SEL)selector
+-(void)registerSubscriber:(id)subscriber notifier:(id)notifier usingSelector:(SEL)selector
 {
     ObserverInfor *infor = [[ObserverInfor alloc] init];
     infor->selector=selector;
-    infor->controller=observer;
-    [[observer mutableSetOfObserver] addObject:infor];
+    infor->controller=subscriber;
+    [[subscriber mutableSetOfNotifier] addObject:infor];
 
     
     OSSpinLockLock(&_lock);
     
-    NSHashTable *hashTable = [_mapTable objectForKey:object];
+    NSHashTable *hashTable = [_mapTable objectForKey:notifier];
     if(!hashTable)
     {
         hashTable = [NSHashTable hashTableWithOptions:NSPointerFunctionsWeakMemory|NSPointerFunctionsObjectPointerPersonality];
-        [_mapTable setObject:hashTable forKey:object];
+        [_mapTable setObject:hashTable forKey:notifier];
     }
     [hashTable addObject:infor];
     
@@ -140,14 +175,63 @@ static void * mutableSetOfObserverKey = &mutableSetOfObserverKey;
 
 
 
-
-
-
--(void)dispatchMessage:(NSDictionary *)message  messageName:(NSString *)messageName fromObject:(id )object
+-(void)unRegisterSubscriber:(id)subscriber   notifier:(id)notifier
 {
     OSSpinLockLock(&_lock);
     
-    NSHashTable *hashTable = [_mapTable objectForKey:object];
+    
+    NSHashTable *hash = [_mapTable objectForKey:notifier];
+    
+    for (ObserverInfor *infor in hash.allObjects) {
+        if(infor->controller==subscriber)
+        {
+            [hash removeObject:infor];
+            NSMutableSet *set = [subscriber mutableSetOfNotifier];
+            [set removeObject:infor];
+
+            break;
+        }
+    }
+
+    OSSpinLockUnlock(&_lock);
+}
+
+
+
+
+-(void)unRegisterSubscriberToALLNotifiers:(id)subscriber
+{
+    OSSpinLockLock(&_lock);
+    
+    NSMutableSet *set = [subscriber mutableSetOfNotifier];
+    
+    
+    for (id object in set.allObjects) {
+        NSHashTable *hash = [_mapTable objectForKey:object];
+        for (ObserverInfor *infor in hash.allObjects) {
+            if(infor->controller==subscriber)
+            {
+                [hash removeObject:infor];
+                NSMutableSet *set = [subscriber mutableSetOfNotifier];
+                [set removeObject:infor];
+                
+                break;
+            }
+
+        }
+    }
+    
+    OSSpinLockUnlock(&_lock);
+}
+
+
+
+
+-(void)dispatchMessage:(NSDictionary *)message  messageName:(NSString *)messageName notifier:(id )notifier
+{
+    OSSpinLockLock(&_lock);
+    
+    NSHashTable *hashTable = [_mapTable objectForKey:notifier];
     if(hashTable)
     {
         for (ObserverInfor *infor in hashTable)
@@ -169,7 +253,6 @@ static void * mutableSetOfObserverKey = &mutableSetOfObserverKey;
         }
     }
 
-    
     OSSpinLockUnlock(&_lock);
 }
 

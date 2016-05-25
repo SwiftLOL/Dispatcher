@@ -26,13 +26,12 @@
     self.A = [[NSObject alloc] init];
     self.B = [[NSObject alloc] init];
     
-    [[Dispatcher shareInstance] addObserver:self.B messageFromObject:self.A usingBlock:^(NSString *messageName, NSDictionary *message) {
-        NSLog(@"using block %@  %@",messageName,message);
+    [self.B registerSubscriberToNotifier:self.A usingBlock:^(NSString *messageName, NSDictionary *message) {
+                NSLog(@"using block %@  %@",messageName,message);
     }];
     
     
-    [[Dispatcher shareInstance] addObserver:self messageFromObject:self.A usingSelector:@selector(recieveMessageName:message:)];
-    
+    [self registerSubscriberToNotifier:self.A usingSelector:@selector(recieveMessageName:message:)];
     
     UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(tapMethod)];
     [self.view addGestureRecognizer:tap];
@@ -48,7 +47,12 @@
 
 -(void)tapMethod
 {
-    [[Dispatcher shareInstance] dispatchMessage:@{@"test":@"test"} messageName:@"test" fromObject:self.A];
+    
+   [self.A dispatchMessage:@{@"A":@"isDispatching message"} messageName:@"test"];
+    
+    [self unRegisterSubscriberToNotifier:self.A];
+    
+    //[self unRegisterSubscriberToAllNotifier];
 }
 
 @end

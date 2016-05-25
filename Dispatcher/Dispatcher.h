@@ -11,9 +11,20 @@
 
 @interface NSObject (Dispatcher)
 
--(NSMutableSet *)mutableSetOfObserver;
+-(NSMutableSet *)mutableSetOfNotifier;
 
--(void)setMutableSetOfObserver:(NSMutableSet *)mutableSet;
+-(void)setMutableSetOfNotifier:(NSMutableSet *)mutableSet;
+
+-(void)registerSubscriberToNotifier:(id)notifier   usingBlock:(void (^)(NSString *messageName,NSDictionary *message)) block;
+
+-(void)registerSubscriberToNotifier:(id)notifier   usingSelector:(SEL)selector;
+
+-(void)unRegisterSubscriberToNotifier:(id)notifier;
+
+-(void)unRegisterSubscriberToAllNotifier;
+
+-(void)dispatchMessage:(NSDictionary *)message  messageName:(NSString *)messageName;
+
 @end
 
 
@@ -21,10 +32,14 @@
 
 +(instancetype)shareInstance;
 
--(void)dispatchMessage:(NSDictionary *)message  messageName:(NSString *)messageName fromObject:(id )object;
+-(void)dispatchMessage:(NSDictionary *)message  messageName:(NSString *)messageName notifier:(id )notifier;
 
--(void)addObserver:(id)observer  messageFromObject:(id)object   usingBlock:(void (^)(NSString *messageName,NSDictionary *message)) block;
+-(void)registerSubscriber:(id)subscriber  notifier:(id)notifier   usingBlock:(void (^)(NSString *messageName,NSDictionary *message)) block;
 
--(void)addObserver:(id)observer  messageFromObject:(id)object   usingSelector:(SEL)selector;
+-(void)registerSubscriber:(id)subscriber  notifier:(id)notifier   usingSelector:(SEL)selector;
+
+-(void)unRegisterSubscriber:(id)subscriber   notifier:(id)notifier;
+
+-(void)unRegisterSubscriberToALLNotifiers:(id)subscriber;
 
 @end
