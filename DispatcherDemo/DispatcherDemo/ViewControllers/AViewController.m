@@ -26,12 +26,12 @@
     self.A = [[NSObject alloc] init];
     self.B = [[NSObject alloc] init];
     
-    [self.B registerSubscriberToNotifier:self.A usingBlock:^(Notifiction *notifiction) {
+    [self.B registerSubscriberToNotifier:self.A queue:dispatch_get_main_queue() usingBlock:^(Notifiction *notifiction) {
                 NSLog(@"using block %@  %@",notifiction.name,notifiction.object);
     }];
     
     
-    [self registerSubscriberToNotifier:self.A usingSelector:@selector(handleNotifiction:)];
+    [self registerSubscriberToNotifier:self.A queue:dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0) usingSelector:@selector(handleNotifiction:)];
     
     UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(tapMethod)];
     [self.view addGestureRecognizer:tap];
@@ -51,7 +51,6 @@
     
     [self unRegisterSubscriberToNotifier:self.A];
     
-    //[self unRegisterSubscriberToAllNotifier];
 }
 
 @end

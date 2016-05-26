@@ -57,16 +57,16 @@ static void * mutableSetOfNotifierKey = &mutableSetOfNotifierKey;
 
 
 
--(void)registerSubscriberToNotifier:(id)notifier   usingBlock:(void (^)(Notifiction *notifiction)) block
+-(void)registerSubscriberToNotifier:(id)notifier   queue:(dispatch_queue_t)queue usingBlock:(void (^)(Notifiction *notifiction)) block
 {
-    [[Dispatcher shareInstance] registerSubscriber:self notifier:notifier usingBlock:block];
+    [[Dispatcher shareInstance] registerSubscriber:self notifier:notifier queue:queue usingBlock:block];
 }
 
 
 
--(void)registerSubscriberToNotifier:(id)notifier   usingSelector:(SEL)selector
+-(void)registerSubscriberToNotifier:(id)notifier  queue:(dispatch_queue_t)queue usingSelector:(SEL)selector
 {
-    [[Dispatcher shareInstance] registerSubscriber:self notifier:notifier usingSelector:selector];
+    [[Dispatcher shareInstance] registerSubscriber:self notifier:notifier queue:queue usingSelector:selector];
 }
 
 
@@ -109,6 +109,8 @@ static void * mutableSetOfNotifierKey = &mutableSetOfNotifierKey;
     __weak  id  controller;
     void (^block)(Notifiction *notifiction);
      SEL   selector;
+    
+   __weak  dispatch_queue_t queue;
 }
 
 
@@ -152,11 +154,12 @@ static void * mutableSetOfNotifierKey = &mutableSetOfNotifierKey;
 
 
 
--(void)registerSubscriber:(id)subscriber notifier:(id)notifier usingBlock:(void (^)(Notifiction *notifiction))block
+-(void)registerSubscriber:(id)subscriber notifier:(id)notifier  queue:(dispatch_queue_t)queue usingBlock:(void (^)(Notifiction *notifiction))block
 {
     SubscriberInfor *infor = [[SubscriberInfor alloc] init];
     infor->block=block;
     infor->controller=subscriber;
+    infor->queue=queue;
     
     [[subscriber mutableSetOfNotifier] addObject:infor];
     
@@ -176,11 +179,12 @@ static void * mutableSetOfNotifierKey = &mutableSetOfNotifierKey;
 }
 
 
--(void)registerSubscriber:(id)subscriber notifier:(id)notifier usingSelector:(SEL)selector
+-(void)registerSubscriber:(id)subscriber notifier:(id)notifier queue:(dispatch_queue_t)queue usingSelector:(SEL)selector
 {
     SubscriberInfor *infor = [[SubscriberInfor alloc] init];
     infor->selector=selector;
     infor->controller=subscriber;
+    infor->queue=queue;
     [[subscriber mutableSetOfNotifier] addObject:infor];
 
     
@@ -260,20 +264,23 @@ static void * mutableSetOfNotifierKey = &mutableSetOfNotifierKey;
     {
         for (SubscriberInfor *infor in hashTable)
         {
-            
-            if(infor->selector)
-            {
-                if([infor->controller respondsToSelector:infor->selector])
-                {
+           dispatch_async(infor->queue, ^{
+               if(infor->selector)
+               {
+                   if([infor->controller respondsToSelector:infor->selector])
+                   {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-                    [infor->controller performSelector:infor->selector withObject:[[Notifiction alloc] initWithName:notifictionName object:notifiction]];
+                       [infor->controller performSelector:infor->selector withObject:[[Notifiction alloc] initWithName:notifictionName object:notifiction]];
+                                              
 #pragma clang diagnostic pop
-                }
-            }else if(infor->block)
-            {
-                infor->block([[Notifiction alloc] initWithName:notifictionName object:notifiction]);
-            }
+                   }
+               }else if(infor->block)
+               {
+                   infor->block([[Notifiction alloc] initWithName:notifictionName object:notifiction]);
+               }
+ 
+           });
         }
     }
 
