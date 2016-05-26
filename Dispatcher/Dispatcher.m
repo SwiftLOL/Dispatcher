@@ -12,7 +12,29 @@
 
 
 
+
+@implementation Notifiction
+
+-(Notifiction *)initWithName:(NSString *)name  object:(id) object
+{
+    self=[self init];
+    if(self)
+    {
+        self.object=object;
+        self.name =name;
+    }
+    
+    return self;
+}
+
+@end
+
+
+
+
+
 static void * mutableSetOfNotifierKey = &mutableSetOfNotifierKey;
+
 
 @implementation NSObject (Dispatcher)
 
@@ -35,7 +57,7 @@ static void * mutableSetOfNotifierKey = &mutableSetOfNotifierKey;
 
 
 
--(void)registerSubscriberToNotifier:(id)notifier   usingBlock:(void (^)(NSString *messageName,NSDictionary *message)) block
+-(void)registerSubscriberToNotifier:(id)notifier   usingBlock:(void (^)(Notifiction *notifiction)) block
 {
     [[Dispatcher shareInstance] registerSubscriber:self notifier:notifier usingBlock:block];
 }
@@ -62,13 +84,15 @@ static void * mutableSetOfNotifierKey = &mutableSetOfNotifierKey;
 
 
 
--(void)dispatchMessage:(NSDictionary *)message  messageName:(NSString *)messageName
+-(void)dispatchNotifiction:(id)notifiction  notifictionName:(NSString *)notifictionName
 {
-    [[Dispatcher shareInstance]  dispatchMessage:message messageName:messageName notifier:self];
+    [[Dispatcher shareInstance] dispatchNotifiction:notifiction notifictionName:notifictionName notifier:self];
 }
 
 
 @end
+
+
 
 
 
@@ -83,7 +107,7 @@ static void * mutableSetOfNotifierKey = &mutableSetOfNotifierKey;
 {
     @public
     __weak  id  controller;
-    void (^block)(NSString *messageName,NSDictionary *message);
+    void (^block)(Notifiction *notifiction);
      SEL   selector;
 }
 
@@ -128,7 +152,7 @@ static void * mutableSetOfNotifierKey = &mutableSetOfNotifierKey;
 
 
 
--(void)registerSubscriber:(id)subscriber notifier:(id)notifier usingBlock:(void (^)(NSString *, NSDictionary *))block
+-(void)registerSubscriber:(id)subscriber notifier:(id)notifier usingBlock:(void (^)(Notifiction *notifiction))block
 {
     SubscriberInfor *infor = [[SubscriberInfor alloc] init];
     infor->block=block;
@@ -227,7 +251,7 @@ static void * mutableSetOfNotifierKey = &mutableSetOfNotifierKey;
 
 
 
--(void)dispatchMessage:(NSDictionary *)message  messageName:(NSString *)messageName notifier:(id )notifier
+-(void)dispatchNotifiction:(id )notifiction  notifictionName:(NSString *)notifictionName notifier:(id )notifier
 {
     OSSpinLockLock(&_lock);
     
@@ -243,12 +267,12 @@ static void * mutableSetOfNotifierKey = &mutableSetOfNotifierKey;
                 {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-                    [infor->controller performSelector:infor->selector withObject:messageName withObject:message];
+                    [infor->controller performSelector:infor->selector withObject:[[Notifiction alloc] initWithName:notifictionName object:notifiction]];
 #pragma clang diagnostic pop
                 }
             }else if(infor->block)
             {
-                infor->block(messageName,message);
+                infor->block([[Notifiction alloc] initWithName:notifictionName object:notifiction]);
             }
         }
     }

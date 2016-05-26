@@ -26,12 +26,12 @@
     self.A = [[NSObject alloc] init];
     self.B = [[NSObject alloc] init];
     
-    [self.B registerSubscriberToNotifier:self.A usingBlock:^(NSString *messageName, NSDictionary *message) {
-                NSLog(@"using block %@  %@",messageName,message);
+    [self.B registerSubscriberToNotifier:self.A usingBlock:^(Notifiction *notifiction) {
+                NSLog(@"using block %@  %@",notifiction.name,notifiction.object);
     }];
     
     
-    [self registerSubscriberToNotifier:self.A usingSelector:@selector(recieveMessageName:message:)];
+    [self registerSubscriberToNotifier:self.A usingSelector:@selector(handleNotifiction:)];
     
     UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(tapMethod)];
     [self.view addGestureRecognizer:tap];
@@ -39,16 +39,15 @@
 }
 
 
--(void)recieveMessageName:(NSString *)messageName message:(NSDictionary *)message
-{
-    NSLog(@"using selector %@  %@",messageName,message);
+-(void)handleNotifiction:(Notifiction *)notifiction {
+    NSLog(@"using selector %@  %@",notifiction.name,notifiction.object);
 }
 
 
 -(void)tapMethod
 {
     
-   [self.A dispatchMessage:@{@"A":@"isDispatching message"} messageName:@"test"];
+   [self.A dispatchNotifiction:@"testesteste" notifictionName:@"test"];
     
     [self unRegisterSubscriberToNotifier:self.A];
     

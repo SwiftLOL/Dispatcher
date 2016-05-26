@@ -21,19 +21,19 @@
  
  
  
-      [BObject registerSubscriberToNotifier:AObject usingBlock:^(NSString *messageName,NSDictionary *message) {
-                NSLog(@"using block %@  %@",messageName,message);
+    [BObject registerSubscriberToNotifier:AObject usingBlock:^(Notifiction *notifiction)  {
+        NSLog(@"using block %@  %@",notifiction.name,notifiction.object);
     }];
-
-     [CObject registerSubscriberToNotifier:AObject usingSelector:@selector(recieveMessageName:message:)];
-
+    
+    
+    [CObject registerSubscriberToNotifier:AObject usingSelector:@selector(handleNotifiction:)];
 
 
 2.发送事件
 
 
 
-    [AObject dispatchMessage:@{@"A":@"isDispatching message"} messageName:@"test"];
+    [AObject dispatchNotifiction:@"testesteste" notifictionName:@"test"];
 
 
 3.移除通知者
