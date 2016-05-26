@@ -264,6 +264,10 @@ static void * mutableSetOfNotifierKey = &mutableSetOfNotifierKey;
     {
         for (SubscriberInfor *infor in hashTable)
         {
+            dispatch_queue_t queue = infor->queue;
+            if(nil==queue)
+                queue=dispatch_get_main_queue();
+            
            dispatch_async(infor->queue, ^{
                if(infor->selector)
                {
